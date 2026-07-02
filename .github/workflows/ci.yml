@@ -1,0 +1,37 @@
+name: ci
+
+# chtester Windows-yerel bir araç (golang.org/x/sys/windows/registry ile derlenir),
+# bu yüzden CI windows runner'da koşar. Üç adım: derle, vet (unsafeptr hariç), test.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-vet-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.x'
+          check-latest: true
+
+      - name: Build (tüm paketler + 4 ikili)
+        shell: pwsh
+        run: |
+          go build ./...
+          go build -o chtester.exe ./cmd/chtester
+          go build -o invoke-cleanup.exe ./cmd/invoke-cleanup
+          go build -o chtester-aggregate.exe ./cmd/aggregate
+          go build -o scope-sign.exe ./cmd/scope-sign
+
+      - name: Vet (unsafeptr hariç — nativeapi el-yazımı COM/Win32 kasıtlı)
+        shell: pwsh
+        # nativeapi'deki unsafe.Pointer kullanımları belgelenmiş ve kabul edilmiş;
+        # tek o kontrol kapatılır, diğer tüm vet kontrolleri tüm pakette aktif kalır.
+        run: go vet -unsafeptr=false ./...
+
+      - name: Test
+        shell: pwsh
+        run: go test ./...

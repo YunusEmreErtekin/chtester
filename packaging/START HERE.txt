@@ -1,0 +1,65 @@
+============================================================
+ Client Device Tester  -  chtester
+ USB saha kiti. Bu tek sayfayi oku, sonra calistir.
+============================================================
+
+BU NEDIR
+--------
+  Bir Windows istemci cihazinin ne kadar sikilastirildigini
+  olcen tek-dosya arac (186 kontrol / 26 kategori). Kurulum yok,
+  bagimlilik yok. Temel soru: bir calisan bu cihazdan sirkete,
+  veriye veya cihaza zarar verebilir mi?
+
+NASIL CALISTIRILIR (en basit yol)
+---------------------------------
+  1) Run-Full-Noisy-x64.exe  -> CIFT TIKLA
+       (cihaz ARM ise -arm64, 32-bit ise -x86)
+  2) Soruya  Y  yazip Enter.
+  3) Bitince ekranda "TEMIZLENDI (cleaned=true)" gorulmeli;
+     rapor otomatik acilir.
+
+  Bu launcher tam taramayi (pasif + aktif + gurultulu) tek
+  seferde yapar, butun degisiklikleri ANINDA geri alir ve
+  pencere Enter'a basana kadar ACIK kalir. Kilitli cihazlarda
+  .bat dosyalari acilip kapansa bile bu calisir.
+
+  Yalniz GUVENLI/pasif bakis istersen: ClientDeviceTester-x64.exe
+  dosyasini dogrudan cift tikla (salt-okunur, hicbir degisiklik
+  yapmaz).
+
+CIKTI NEREDE
+------------
+  Sonuclar exe'nin yanindaki klasore, cihaz+tarih adiyla yazilir:
+    Results\<hostname>_<YYYYMMDD_HHMMSS>\
+      report.html    <- GORSEL RAPOR (musteriye giden budur)
+      report.txt     <- duz metin ozet
+      results.json   <- makine-okunur veri (filo birlestirme)
+      manifest.json  <- yapilan/geri alinan degisiklik kaydi
+
+  report.html: severity seviyeleri (Bilgi / Dusuk / Orta / Yuksek
+  / Kritik / Acil), sade dilde etki aciklamalari ve kategori
+  bazinda bulgular icerir.
+
+.bat ILE KADEMELI AKIS (cmd acik cihazlarda, opsiyonel)
+-------------------------------------------------------
+  Run-0-Preflight.bat  -> cihaz posture kontrolu (guvenli)
+  Run-1-Passive.bat    -> guvenli, salt-okunur tarama
+  Run-2-Active.bat     -> aktif testler (otomatik geri alinir)
+  Run-3-Noisy.bat      -> gurultulu [N] testler (Y/N sorar)
+  Not: degisiklikler her testten sonra ANINDA geri alinir (auto-revert).
+  Not: bazi kilitli cihazlarda .bat acilip kapanir; o durumda
+  yukaridaki Run-Full-Noisy exe'sini kullan.
+
+EXE ENGELLENIRSE
+----------------
+  Rapor yine yazilir (cikti USB -> Temp -> Desktop'a duser).
+  Ikili hic calismazsa (AppLocker/WDAC/EDR), bu da bir bulgudur.
+
+TOOLS\ (nadiren gerekir)
+------------------------
+  FleetReport-*.exe  cok cihazli birlestirme (results.json -> fleet)
+
+------------------------------------------------------------
+ Yalnizca yazili yetkilendirme ve onceden SOC bilgilendirmesi
+ ile calistirilir. Gurultulu testler EDR/SOC alarmi uretir.
+============================================================
