@@ -104,6 +104,26 @@ def reg_string_values(root: int, path: str) -> dict[str, str]:
     return out
 
 
+def reg_export_text(root: int, path: str) -> str:
+    root_name = {winreg.HKEY_LOCAL_MACHINE: "HKLM", winreg.HKEY_CURRENT_USER: "HKCU"}.get(root, "?")
+    lines = [f"[{root_name}\\{path}]"]
+    try:
+        with winreg.OpenKey(root, path, 0, winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as k:
+            i = 0
+            while True:
+                try:
+                    name, val, typ = winreg.EnumValue(k, i)
+                    typ_name = {1: "REG_SZ", 2: "REG_EXPAND_SZ", 3: "REG_BINARY",
+                                4: "REG_DWORD", 7: "REG_MULTI_SZ", 11: "REG_QWORD"}.get(typ, f"type={typ}")
+                    lines.append(f"  {name!r} = {val!r}  ({typ_name})")
+                    i += 1
+                except OSError:
+                    break
+    except OSError:
+        lines.append("  (okunamadi)")
+    return "\n".join(lines)
+
+
 def can_reg_write(root: int, path: str) -> bool:
     try:
         with winreg.OpenKey(root, path, 0, winreg.KEY_SET_VALUE | winreg.KEY_WOW64_64KEY):

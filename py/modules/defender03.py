@@ -54,6 +54,9 @@ class Module03:
                 tamper_label = "Acik(5)" if tamper == 5 else str(tamper)
             r.result = schema.RESULT_PARTIAL
             r.evidence = f"RTP-disabled={dis_rtp}; Tamper={tamper_label}; PUA={pua}; NP={np}; CFA={cfa}"
+            reg_text = winapi.reg_export_text(winapi._HKLM, DEF_ROOT + r"\Real-Time Protection")
+            reg_text += "\n" + winapi.reg_export_text(winapi._HKLM, DEF_ROOT + r"\Features")
+            ctx.save_poc(r, "defender_registry.txt", reg_text, "Defender registry degerleri", "registry")
             if dis_rtp == 1:
                 r.result = schema.RESULT_ALLOWED
                 r.risk_when_open = schema.RISK_CRITICAL

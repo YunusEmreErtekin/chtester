@@ -31,6 +31,8 @@ class Module09:
             cached, _ = winapi.reg_string(winapi._HKLM, r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon", "CachedLogonsCount")
             lsacfg, _ = winapi.reg_dword(winapi._HKLM, r"SYSTEM\CurrentControlSet\Control\Lsa", "LsaCfgFlags")
             r.evidence = f"RunAsPPL={runasppl}; WDigest.UseLogonCredential={wdigest}; CachedLogonsCount={cached!r}; CredGuard(LsaCfgFlags)={lsacfg}"
+            lsa_reg = winapi.reg_export_text(winapi._HKLM, r"SYSTEM\CurrentControlSet\Control\Lsa")
+            ctx.save_poc(r, "lsa_registry.txt", lsa_reg, "LSA registry degerleri", "registry")
             rec = []
             if runasppl == 0:
                 rec.append("RunAsPPL/LSA Protection kapali")

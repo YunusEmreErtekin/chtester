@@ -26,11 +26,19 @@ from .report.html_report import generate as generate_html
 from . import winapi
 
 from .modules.exec01 import Module01
+from .modules.logging02 import Module02
 from .modules.defender03 import Module03
 from .modules.privilege04 import Module04
+from .modules.storage05 import Module05
+from .modules.appcontrol06 import Module06
 from .modules.network07 import Module07
+from .modules.patch08 import Module08
 from .modules.credential09 import Module09
+from .modules.deviceguard10 import Module10
+from .modules.browser11 import Module11
 from .modules.userlockdown14 import Module14
+from .modules.persistence18 import Module18
+from .modules.remoteaccess20 import Module20
 from .modules.malsite27 import Module27
 from .modules.useraccount28 import Module28
 
@@ -69,6 +77,9 @@ def main():
         enable_noisy=args.enable_noisy,
     )
 
+    # PoC directory
+    poc_dir = os.path.join(out_dir, "poc")
+
     # Context
     ctx = RunContext(
         profile=schema.PROFILE_AUDIT,
@@ -77,16 +88,25 @@ def main():
         flags=flags,
         log=log,
         budget=args.budget,
+        poc_dir=poc_dir,
     )
 
     # Modules
     runner = Runner(ctx,
         Module01(),
+        Module02(),
         Module03(),
         Module04(),
+        Module05(),
+        Module06(),
         Module07(),
+        Module08(),
         Module09(),
+        Module10(),
+        Module11(),
         Module14(),
+        Module18(),
+        Module20(),
         Module27(),
         Module28(),
     )

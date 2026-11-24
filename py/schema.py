@@ -57,6 +57,16 @@ class RunFlags:
 
 
 @dc.dataclass
+class PocArtifact:
+    filename: str = ""
+    description: str = ""
+    artifact_type: str = ""  # registry, command_output, file_copy, config
+
+    def to_dict(self) -> dict:
+        return dc.asdict(self)
+
+
+@dc.dataclass
 class Result:
     test_id: str = ""
     category: str = ""
@@ -78,10 +88,12 @@ class Result:
     device_id: str = ""
     timestamp: str = ""
     duration_ms: int = 0
+    poc_artifacts: list[PocArtifact] = dc.field(default_factory=list)
 
     def to_dict(self) -> dict:
         d = dc.asdict(self)
         d["mapping"] = dc.asdict(self.mapping)
+        d["poc_artifacts"] = [a.to_dict() for a in self.poc_artifacts]
         return d
 
 

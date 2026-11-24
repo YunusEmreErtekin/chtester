@@ -1,7 +1,7 @@
 """Test harness — mirrors the Go harness package."""
 from __future__ import annotations
-import time, random, traceback
-from typing import Protocol, Any
+import os, time, random, shutil, traceback
+from typing import Protocol, Any, Optional
 from datetime import datetime, timezone
 
 from . import schema
@@ -26,7 +26,8 @@ class Module(Protocol):
 class RunContext:
     def __init__(self, profile: str, tier: int, device_id: str,
                  flags: schema.RunFlags, log: Logger,
-                 seed: int = 0, budget: float = 0):
+                 seed: int = 0, budget: float = 0,
+                 poc_dir: str = ""):
         self.profile = profile
         self.tier = tier
         self.device_id = device_id
@@ -37,6 +38,9 @@ class RunContext:
         self.started_at = time.monotonic()
         self._used_ids: set[str] = set()
         self._stealth = profile == schema.PROFILE_STEALTH
+        self.poc_dir = poc_dir
+        if poc_dir:
+            os.makedirs(poc_dir, exist_ok=True)
 
     def active_allowed(self) -> bool:
         return not self.flags.passive_only and not self.flags.what_if
@@ -72,6 +76,41 @@ class RunContext:
             r.evidence = "Pasif mod; aktif test icin -PassiveOnly=false"
             return False
         return True
+
+    def save_poc(self, r: schema.Result, filename: str, content: str,
+                 description: str = "", artifact_type: str = "command_output") -> Optional[str]:
+        if not self.poc_dir:
+            return None
+        safe_id = r.test_id.replace("/", "_").replace("\\", "_")
+        dir_path = os.path.join(self.poc_dir, safe_id)
+        os.makedirs(dir_path, exist_ok=True)
+        path = os.path.join(dir_path, filename)
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(content)
+        except OSError:
+            return None
+        rel = os.path.relpath(path, os.path.dirname(self.poc_dir))
+        r.poc_artifacts.append(schema.PocArtifact(
+            filename=rel, description=description, artifact_type=artifact_type))
+        return rel
+
+    def save_poc_binary(self, r: schema.Result, src_path: str, filename: str,
+                        description: str = "", artifact_type: str = "file_copy") -> Optional[str]:
+        if not self.poc_dir:
+            return None
+        safe_id = r.test_id.replace("/", "_").replace("\\", "_")
+        dir_path = os.path.join(self.poc_dir, safe_id)
+        os.makedirs(dir_path, exist_ok=True)
+        dst = os.path.join(dir_path, filename)
+        try:
+            shutil.copy2(src_path, dst)
+        except OSError:
+            return None
+        rel = os.path.relpath(dst, os.path.dirname(self.poc_dir))
+        r.poc_artifacts.append(schema.PocArtifact(
+            filename=rel, description=description, artifact_type=artifact_type))
+        return rel
 
     def budget_exhausted(self) -> bool:
         if self.budget <= 0:
@@ -136,6 +175,8 @@ class Builder:
             r.evidence = f"vektor hatasi (kurtarildi): {exc}"
             self.ctx.log.logf("[%s] vektor HATA kurtarildi: %s", test_id, traceback.format_exc())
         self.ctx.finalize(r, start)
+        if r.result in (schema.RESULT_ALLOWED, schema.RESULT_PARTIAL) and r.evidence:
+            self.ctx.save_poc(r, "evidence.txt", r.evidence, "Test kaniti", "evidence")
         self.out.append(r)
         self.ctx.pace()
 

@@ -50,13 +50,19 @@ def generate(report: schema.Report) -> str:
             result_text = _RESULT_TR.get(r.result, r.result)
             risk_color = _RISK_COLOR.get(r.risk_when_open, "#6b7280")
             rec_html = f'<div class="rec">{_e(r.recommendation)}</div>' if r.recommendation else ""
+            poc_html = ""
+            if r.poc_artifacts:
+                poc_items = []
+                for a in r.poc_artifacts:
+                    poc_items.append(f'<a href="{_e(a.filename)}" class="poc-link">[{_e(a.artifact_type)}] {_e(a.description or a.filename)}</a>')
+                poc_html = '<div class="poc">' + " | ".join(poc_items) + '</div>'
             rows.append(f"""<tr>
   <td><code>{_e(r.test_id)}</code></td>
   <td>{_e(r.name)}</td>
   <td>{emoji} {result_text}</td>
   <td style="color:{risk_color};font-weight:600">{_e(r.risk_when_open)}</td>
   <td>{r.risk_score}</td>
-  <td class="evidence">{_e(r.evidence)}{rec_html}</td>
+  <td class="evidence">{_e(r.evidence)}{rec_html}{poc_html}</td>
   <td>{_e(r.mapping.attack)}</td>
 </tr>""")
 
@@ -84,6 +90,9 @@ tr:hover td{{background:#263347}}
 .cat-header td{{background:#0f172a;color:#38bdf8;font-size:0.95em;padding:10px}}
 .evidence{{max-width:420px;word-break:break-word;color:#94a3b8;font-size:0.82em}}
 .rec{{color:#facc15;margin-top:4px;font-size:0.9em}}
+.poc{{margin-top:4px;font-size:0.8em}}
+.poc-link{{color:#38bdf8;text-decoration:none;margin-right:6px}}
+.poc-link:hover{{text-decoration:underline}}
 code{{background:#334155;padding:2px 5px;border-radius:3px;font-size:0.9em}}
 </style>
 </head>

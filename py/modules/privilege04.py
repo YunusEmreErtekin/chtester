@@ -75,6 +75,8 @@ class Module04:
                 return
             r.result = schema.RESULT_ALLOWED
             r.evidence = f"Privesc yuzeyi: {'; '.join(hits)}"
+            all_privs = winapi.get_privileges()
+            ctx.save_poc(r, "token_privileges.txt", "\n".join(all_privs), "Tum token privilege listesi", "command_output")
             r.recommendation = "Bu privilege'ler standart kullanici token'inda olmamali."
         b.add("CHT-04-004", "Token privilege privesc yuzeyi", test_token_privs)
 
