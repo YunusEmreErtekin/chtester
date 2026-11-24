@@ -128,6 +128,7 @@ def run_cmd(timeout: float, path: str, *args: str) -> RunResult:
         proc = subprocess.run(
             [path, *args],
             capture_output=True, timeout=timeout,
+            stdin=subprocess.DEVNULL,
             creationflags=subprocess.CREATE_NO_WINDOW,
         )
         stdout = proc.stdout.decode("utf-8", errors="replace") if proc.stdout else ""
@@ -350,19 +351,19 @@ def group_members(group: str) -> list[str]:
 
 
 def try_create_user(username: str, password: str) -> RunResult:
-    return run_cmd(15, "net", "user", username, password, "/add")
+    return run_cmd(8, "net", "user", username, password, "/add")
 
 
 def try_delete_user(username: str) -> RunResult:
-    return run_cmd(15, "net", "user", username, "/delete")
+    return run_cmd(8, "net", "user", username, "/delete")
 
 
 def try_add_to_group(username: str, group: str) -> RunResult:
-    return run_cmd(15, "net", "localgroup", group, username, "/add")
+    return run_cmd(8, "net", "localgroup", group, username, "/add")
 
 
 def try_remove_from_group(username: str, group: str) -> RunResult:
-    return run_cmd(15, "net", "localgroup", group, username, "/delete")
+    return run_cmd(8, "net", "localgroup", group, username, "/delete")
 
 
 # ---------------------------------------------------------------------------

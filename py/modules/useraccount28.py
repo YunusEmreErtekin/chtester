@@ -47,74 +47,47 @@ class Module28:
                 r.evidence += " — grup okunamadi (dil farki olabilir)"
         b.add("CHT-28-001", "Local admin grubu uyeleri", test_admin_members)
 
-        # 28.2 Kullanici olusturma yetenegi
+        # 28.2–28.4 Kullanici olusturma / silme / gruba ekleme (tek test kullanicisi)
+        _acct_test_user = "cht-test-usr"
+        _acct_test_pass = "CHTt3st!Pwd#2024"
+        _acct_created = False
+
         def test_create_user(r: schema.Result):
+            nonlocal _acct_created
             r.risk_when_open = schema.RISK_CRITICAL
             r.mapping.attack = "T1136.001"
-            r.attempted_methods = ["net user cht-test-usr /add (+ hemen sil)"]
+            r.attempted_methods = ["net user cht-test-usr /add"]
             if not ctx.gate_active(r, 2, False):
                 return
-            test_user = "cht-test-usr"
-            test_pass = "CHTt3st!Pwd#2024"
-            res = winapi.try_create_user(test_user, test_pass)
+            res = winapi.try_create_user(_acct_test_user, _acct_test_pass)
             if res.exit_code == 0:
-                winapi.try_delete_user(test_user)
+                _acct_created = True
                 r.result = schema.RESULT_ALLOWED
-                r.evidence = f"Kullanici '{test_user}' OLUSTURULABILDI (hemen silindi) — kullanici olusturma kisitli degil!"
-                r.recommendation = "Standart kullanicinin hesap olusturma yetkisi olmamali; bu genellikle admin token isareti."
+                r.evidence = f"Kullanici '{_acct_test_user}' OLUSTURULABILDI — kullanici olusturma kisitli degil!"
+                r.recommendation = "Standart kullanicinin hesap olusturma yetkisi olmamali."
             else:
                 r.result = schema.RESULT_BLOCKED
                 r.blocking_mechanism = "Permission"
                 r.evidence = f"Kullanici olusturulamadi (iyi): {res.output[:160]}"
         b.add("CHT-28-002", "Kullanici olusturma yetenegi", test_create_user)
 
-        # 28.3 Kullanici silme yetenegi
-        def test_delete_user(r: schema.Result):
-            r.risk_when_open = schema.RISK_CRITICAL
-            r.mapping.attack = "T1531"
-            r.attempted_methods = ["net user cht-test-del /add + /delete"]
-            if not ctx.gate_active(r, 2, False):
-                return
-            test_user = "cht-test-del"
-            test_pass = "CHTt3st!Del#2024"
-            create_res = winapi.try_create_user(test_user, test_pass)
-            if create_res.exit_code != 0:
-                r.result = schema.RESULT_BLOCKED
-                r.blocking_mechanism = "Permission"
-                r.evidence = "Kullanici olusturulamadigi icin silme testi yapilamadi (iyi — yetki kisitli)"
-                return
-            del_res = winapi.try_delete_user(test_user)
-            if del_res.exit_code == 0:
-                r.result = schema.RESULT_ALLOWED
-                r.evidence = "Kullanici olusturulup SILINEBILDI — tam hesap yonetimi yetkisi var"
-                r.recommendation = "Standart kullanicinin hesap silme yetkisi olmamali."
-            else:
-                winapi.try_delete_user(test_user)
-                r.result = schema.RESULT_PARTIAL
-                r.evidence = "Kullanici olusturulabildi ama silinemedi"
-        b.add("CHT-28-003", "Kullanici silme yetenegi", test_delete_user)
-
-        # 28.4 Gruba ekleme yetenegi (Administrators)
         def test_group_add(r: schema.Result):
             r.risk_when_open = schema.RISK_CRITICAL
             r.mapping.attack = "T1098"
-            r.attempted_methods = ["net localgroup Administrators cht-grp-test /add (+ geri al)"]
+            r.attempted_methods = ["net localgroup Administrators cht-test-usr /add"]
             if not ctx.gate_active(r, 2, False):
                 return
-            test_user = "cht-grp-test"
-            test_pass = "CHTgrp!T3st#2024"
-            create_res = winapi.try_create_user(test_user, test_pass)
-            if create_res.exit_code != 0:
+            if not _acct_created:
                 r.result = schema.RESULT_BLOCKED
                 r.blocking_mechanism = "Permission"
                 r.evidence = "Test kullanicisi olusturulamadi — gruba ekleme testi yapilamadi (iyi)"
                 return
-            add_res = winapi.try_add_to_group(test_user, "Administrators")
+            add_res = winapi.try_add_to_group(_acct_test_user, "Administrators")
             if add_res.exit_code != 0:
-                add_res = winapi.try_add_to_group(test_user, "Yoneticiler")
+                add_res = winapi.try_add_to_group(_acct_test_user, "Yoneticiler")
             if add_res.exit_code == 0:
-                winapi.try_remove_from_group(test_user, "Administrators")
-                winapi.try_remove_from_group(test_user, "Yoneticiler")
+                winapi.try_remove_from_group(_acct_test_user, "Administrators")
+                winapi.try_remove_from_group(_acct_test_user, "Yoneticiler")
                 r.result = schema.RESULT_ALLOWED
                 r.evidence = "Kullanici Administrators grubuna EKLENABILDI (geri alindi) — privesc yuzeyi!"
                 r.recommendation = "Standart kullanicinin gruba ekleme yetkisi olmamali."
@@ -122,8 +95,29 @@ class Module28:
                 r.result = schema.RESULT_BLOCKED
                 r.blocking_mechanism = "Permission"
                 r.evidence = f"Gruba ekleme engellendi (iyi): {add_res.output[:160]}"
-            winapi.try_delete_user(test_user)
         b.add("CHT-28-004", "Administrators grubuna ekleme yetenegi", test_group_add)
+
+        def test_delete_user(r: schema.Result):
+            r.risk_when_open = schema.RISK_CRITICAL
+            r.mapping.attack = "T1531"
+            r.attempted_methods = ["net user cht-test-usr /delete"]
+            if not ctx.gate_active(r, 2, False):
+                return
+            if not _acct_created:
+                r.result = schema.RESULT_BLOCKED
+                r.blocking_mechanism = "Permission"
+                r.evidence = "Kullanici olusturulamadigi icin silme testi yapilamadi (iyi — yetki kisitli)"
+                return
+            del_res = winapi.try_delete_user(_acct_test_user)
+            if del_res.exit_code == 0:
+                r.result = schema.RESULT_ALLOWED
+                r.evidence = "Kullanici olusturulup SILINEBILDI — tam hesap yonetimi yetkisi var"
+                r.recommendation = "Standart kullanicinin hesap silme yetkisi olmamali."
+            else:
+                r.result = schema.RESULT_PARTIAL
+                r.evidence = "Kullanici olusturulabildi ama silinemedi"
+                winapi.try_delete_user(_acct_test_user)
+        b.add("CHT-28-003", "Kullanici silme yetenegi", test_delete_user)
 
         # 28.5 Mevcut kullanici envanteri
         def test_user_inventory(r: schema.Result):
